@@ -9,26 +9,30 @@ import android.graphics.Rect;
  * Created by Anthony on 6/11/2016.
  */
 public class Bubble {
-    int diameter = 0;
-    int value = 0;
-    int spd = 0;
-    int timeAlive;
-    int xCoord = 0;
-    int yCoord = 0;
-    Paint textPaint = new Paint();
-    int txtSize = 75;
-    Paint bubblePaint = new Paint();
-    Paint outsidePaint = new Paint();
+    private int diameter = 0;
+    private int value = 0;
+    private int spd = 0;
+    private int timeAlive;
+    private int xCoord = 0;
+    private int yCoord = 0;
+    private Paint textPaint = new Paint();
+    private int txtSize = 75;
+    private Paint bubblePaint = new Paint();
+    private Paint outsidePaint = new Paint();
+    private boolean shielded;
+    private Paint shieldPaint = new Paint();
 
-    public Bubble(int w, int x, int num, int speed, Canvas c){
+    public Bubble(int w, int x, int num, int speed, boolean mode, Canvas c){
         diameter = w;
         xCoord = x;
         value = num;
         spd = speed;
         timeAlive = 0;
+        ranShield();
         drawBubble(c);
         textPaint.setColor(Color.BLUE);
         textPaint.setTextSize(txtSize);
+        shieldPaint.setColor(Color.LTGRAY);
     }
 
     public void setBubbleSize(int size){
@@ -59,6 +63,14 @@ public class Bubble {
         yCoord = newY + spd;
     }
 
+    public void setBubbleShield(boolean s){
+        this.shielded = s;
+    }
+
+    public boolean getBubbleShield(){
+        return this.shielded;
+    }
+
     public void getRanBubbleColor(){
         int colorInt = (int)(Math.random()*5);
         if(colorInt == 0){
@@ -87,13 +99,25 @@ public class Bubble {
         }
     }
 
+    public void ranShield() {
+        int val = (int) (Math.random() * 100);
+        if(val <= 5){
+            setBubbleShield(true);
+        }
+    }
+
+
     public void drawBubble(Canvas canvas){
-        //bubblePaint.setColor(Color.CYAN);
-        bubblePaint.setAlpha(100);
-        canvas.drawCircle(xCoord, yCoord, diameter, bubblePaint);
-        outsidePaint.setStyle(Paint.Style.STROKE);
-        outsidePaint.setStrokeWidth(10);
-        canvas.drawCircle(xCoord, yCoord, diameter, outsidePaint);
+        if(shielded){
+
+        }
+        else {
+            bubblePaint.setAlpha(100);
+            canvas.drawCircle(xCoord, yCoord, diameter, bubblePaint);
+            outsidePaint.setStyle(Paint.Style.STROKE);
+            outsidePaint.setStrokeWidth(10);
+            canvas.drawCircle(xCoord, yCoord, diameter, outsidePaint);
+        }
         String text = "" + value;
         Rect r = new Rect();
         textPaint.getTextBounds(text, 0, text.length(), r);

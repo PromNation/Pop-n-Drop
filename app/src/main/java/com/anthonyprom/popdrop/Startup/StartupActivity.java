@@ -14,21 +14,20 @@ import com.anthonyprom.popdrop.R;
 
 public class StartupActivity extends AppCompatActivity {
 
-    private View mContentView;
-    private View mLoadingView;
-    private int mShortAnimationDuration;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_startup);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        ThreadStartup thread = new ThreadStartup(this);
+        setContentView(R.layout.activity_startup);//Set view to splashscreen
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//Force Portrait mode
+        ThreadStartup thread = new ThreadStartup(this);//Start Startup thread
         thread.start();
         thread.setRunning(true);
         //init();
     }
 
+    /*
+    * Initialize variables needed for StartupActivity.
+     */
     public void init(){
         Animation fadeIn = new AlphaAnimation(0, 1);
         fadeIn.setInterpolator(new DecelerateInterpolator());

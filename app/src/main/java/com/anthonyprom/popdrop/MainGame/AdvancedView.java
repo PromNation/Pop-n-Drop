@@ -2,18 +2,22 @@ package com.anthonyprom.popdrop.MainGame;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
+import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.View;
 
 import com.anthonyprom.popdrop.Menu.MenuActivity;
 import com.anthonyprom.popdrop.R;
@@ -21,11 +25,14 @@ import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.ArrayList;
 
-
 /**
- * Created by Anthony on 6/11/2016.
+ * Created by Anthony on 7/7/16.
  */
-public class GameView extends SurfaceView implements SurfaceHolder.Callback{
+public class AdvancedView extends View implements SurfaceHolder.Callback{
+
+    Context con;
+    Bitmap bgBitmap;
+    SpawnThread spawnThread;
     public final static String EXTRA_MESSAGE = "com.anthonyprom.popdrop.MESSAGE";
     private final static String LEADERBOARD_ID = "CgkIuJG_jdMbEAIQBA";
     private GoogleApiClient mGoogleApiClient;
@@ -35,8 +42,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
     private int SCREENWIDTH;
     private int SCREENHEIGHT;
     private MainThread mainThread;
-    private SpawnThread spawnThread;
-    private Context con;
     private ArrayList bubbleList = new ArrayList();
     private Paint back = new Paint();
     private int score = 0;
@@ -44,18 +49,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
     private Paint gameoverPaint = new Paint();
     private Paint goPaint = new Paint();
     private MediaPlayer mp;
-    private Bitmap bgBitmap;
     private boolean gameover = false;
 
-
-    public GameView(Context context) {
+    public AdvancedView(Context context) {
         super(context);
         init(context);
     }
 
-
-    public GameView(Context context, AttributeSet attrs) {
+    public AdvancedView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init(context);
+    }
+
+    public AdvancedView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
         init(context);
     }
 
@@ -63,38 +70,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
         con = context;
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
-        back.setColor(Color.LTGRAY);
-        scorePaint.setColor(Color.BLACK);
-        scorePaint.setTextSize(100);
-        gameoverPaint.setColor(Color.RED);
-        gameoverPaint.setTextSize(200);
-        goPaint.setColor(Color.RED);
-        goPaint.setAlpha(100);
-        mp = MediaPlayer.create(context, R.raw.blop);
-        setSystemUiVisibility(SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-    }
-
-    public void surfaceDestroyed(SurfaceHolder holder){
-        spawnThread.setRunning(false);
-        mainThread.setRunning(false);
-        boolean retry = true;
-        while(retry){
-            try{
-                spawnThread.join();
-                mainThread.join();
-                retry = false;
-            } catch (InterruptedException e) {
-                Log.v("Exception Occurred", e.getMessage());
-            }
-        }
     }
 
 
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height){
-
-    }
-
-    public void surfaceCreated(SurfaceHolder holder){
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
         Bitmap bmap = BitmapFactory.decodeResource(getResources(), R.drawable.background);
         float scale = (float) bmap.getHeight() / (float) getHeight();
         int newWidth = Math.round(bmap.getWidth() / scale);
@@ -103,9 +83,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
         spawnThread = new SpawnThread(holder, con, this, false);
         spawnThread.setRunning(true);
         spawnThread.start();
-        mainThread = new MainThread(holder, con, this);
-        mainThread.setRunning(true);
-        mainThread.start();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
 
     }
 
@@ -115,22 +101,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
         gameoverPaint.getTextBounds("GAME OVER", 0, 9, r);
         SCREENWIDTH = canvas.getWidth();
         SCREENHEIGHT = canvas.getHeight();
-        //canvas.drawRect(0, 0, SCREENWIDTH, SCREENHEIGHT, back);
         canvas.drawBitmap(bgBitmap, 0, 0, null);
         if(!gameover) {
             for (int i = 0; i < bubbleList.size(); i++) {
                 Bubble currentBubble = (Bubble) bubbleList.get(i);
                 int oldY = currentBubble.yCoord;
-                if (currentBubble.getBubbleVal() < 1) {
-                    bubbleList.remove(currentBubble);
-                    currentBubble = null;
-                    score++;
-                    mp.start();
-                } else if ((currentBubble.yCoord - currentBubble.diameter) > SCREENHEIGHT) {
+                if ((currentBubble.yCoord - currentBubble.diameter) > SCREENHEIGHT) {
                     spawnThread.interrupt();
                     spawnThread.setRunning(false);
                     gameover = true;
-                    whomp(canvas);
                 } else {
                     currentBubble.moveBubble(oldY + 10);
                     currentBubble.drawBubble(canvas);
@@ -147,26 +126,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
             canvas.drawText(finalScore, (SCREENWIDTH/2)-(Math.abs(q.width()/2)), (SCREENHEIGHT / 2) - ((scorePaint.descent() + scorePaint.ascent())/2), scorePaint);
         }
 
-        postInvalidate();
-
-    }
-
-    public void whomp(Canvas canvas){
-        canvas.drawRect(0, 0, SCREENWIDTH, SCREENHEIGHT, goPaint);
-        postInvalidate();
-        try{
-            synchronized (this){
-                wait(2000);
-            }
-        }
-        catch(InterruptedException e){
-            e.printStackTrace();
-        }
-
-    }
-
-    public void addToList(Bubble b){
-        bubbleList.add(b);
     }
 
     public boolean onTouchEvent(MotionEvent event){
@@ -178,9 +137,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
                 int finishX = ((Bubble)b).xCoord + ((Bubble)b).diameter;
                 int startY = ((Bubble)b).yCoord - ((Bubble)b).diameter;
                 int finishY = ((Bubble)b).yCoord + ((Bubble)b).diameter;
-                if(x > startX && x < finishX){
-                    if(y > startY && y < finishY){
-                        ((Bubble)b).setBubbleVal(((Bubble)b).getBubbleVal() - 1);
+                if(!((Bubble) b).getBubbleShield()) {
+                    if (x > startX && x < finishX) {
+                        if (y > startY && y < finishY) {
+                            if (((Bubble) b).getBubbleVal() == 0) {
+                                ((Bubble) b).setBubbleVal(((Bubble) b).getBubbleVal() + 1);
+                            } else {
+                                ((Bubble) b).setBubbleVal(((Bubble) b).getBubbleVal() - 1);
+                            }
+                        }
                     }
                 }
             }
@@ -204,10 +169,4 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback{
         }
         return false;
     }
-
-    public int getScore(){
-        return score;
-    }
-
 }
-

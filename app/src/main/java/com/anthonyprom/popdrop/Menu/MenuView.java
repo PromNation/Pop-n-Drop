@@ -180,4 +180,8 @@ public class MenuView extends SurfaceView implements SurfaceHolder.Callback{
         return false;
     }
 
+    public boolean isDEVMODEENABLED(){
+        return DEVMODEENABLED;
+    }
+
 }

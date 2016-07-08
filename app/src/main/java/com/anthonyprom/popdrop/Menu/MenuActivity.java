@@ -24,8 +24,9 @@ import com.google.android.gms.games.Player;
 
 public class MenuActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-    Button startButton;
+    private Button startButton;
     private static final String LEADERBOARD_ID = "CgkIuJG_jdMbEAIQBA";
+    private static final String ADV_LEADERBOARD_ID = "";
     private static final String DID_IT_ID = "CgkIuJG_jdMbEAIQAQ";
     private static final String NOT_TOO_BAD_ID = "CgkIuJG_jdMbEAIQAg";
     private static final String EVEN_TRYING_ID = "CgkIuJG_jdMbEAIQAw";
@@ -38,6 +39,7 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
     private static final int RC_RESOLVE = 5000;
     private static final int RC_UNUSED = 5001;
     private static final int RC_SIGN_IN = 9001;
+    private String TAG = "PND"; //Game name tag
 
 
     AccomplishmentsOutbox mOutbox = new AccomplishmentsOutbox();
@@ -62,14 +64,14 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     protected void onStart(){
         super.onStart();
-        Log.d("PND", "onStart(): connecting");
+        Log.d(TAG, "onStart(): connecting");
         mGoogleApiClient.connect();
     }
 
     @Override
     protected void onStop(){
         super.onStop();
-        Log.d("PND", "onStop: disconnecting");
+        Log.d(TAG, "onStop: disconnecting");
         if(mGoogleApiClient.isConnected()){
             mGoogleApiClient.disconnect();
         }
@@ -86,13 +88,13 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        Log.d("PND", "onConnected(): connected to Google APIs");
+        Log.d(TAG, "onConnected(): connected to Google APIs");
 
 
         Player p = Games.Players.getCurrentPlayer(mGoogleApiClient);
         String displayName;
         if(p == null) {
-            Log.w("PND", "mGamesClient.getCurrentPlayer() is NULL");
+            Log.w(TAG, "mGamesClient.getCurrentPlayer() is NULL");
             displayName = "???";
         }
         else{
@@ -135,13 +137,17 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
             Games.Leaderboards.submitScore(mGoogleApiClient, LEADERBOARD_ID, mOutbox.mNormalScore);
             mOutbox.mNormalScore = -1;
         }
+        if(mOutbox.mAdvScore >= 0){
+            Games.Leaderboards.submitScore(mGoogleApiClient, ADV_LEADERBOARD_ID, mOutbox.mAdvScore);
+            mOutbox.mAdvScore = -1;
+        }
 
         mOutbox.saveLocal(this);
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-        Log.d("PND", "onConnectionSuspended(): attempting to connect");
+        Log.d(TAG, "onConnectionSuspended(): attempting to connect");
         mGoogleApiClient.connect();
     }
 
@@ -149,7 +155,7 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Log.d("PND", "onConnectionFailed(): attempting to resolve");
         if(mResolvingConnectionFailure){
-            Log.d("PND", "onConnectionFailed(): already resolving");
+            Log.d(TAG, "onConnectionFailed(): already resolving");
             return;
         }
     }
@@ -161,10 +167,12 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
         boolean mPower = false;
         boolean mTinkerer = false;
         int mNormalScore = -1;
+        int mAdvScore = -1;
 
         boolean isEmpty() {
             return !mDidIt && !mNotTooBad && !mTrying &&
-                    !mPower && !mTinkerer && mNormalScore < 0;
+                    !mPower && !mTinkerer && mNormalScore < 0
+                    && mAdvScore < 0;
         }
 
         public void saveLocal(Context ctx) {
@@ -183,6 +191,9 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
     public void updateLeaderboards(int finalScore){
         if(mOutbox.mNormalScore < finalScore){
             mOutbox.mNormalScore = finalScore;
+        }
+        if(mOutbox.mAdvScore < finalScore){
+            mOutbox.mAdvScore = finalScore;
         }
     }
 
@@ -246,7 +257,7 @@ public class MenuActivity extends AppCompatActivity implements GoogleApiClient.C
             startActivityForResult(Games.Achievements.getAchievementsIntent(mGoogleApiClient), RC_UNUSED);
         }
         else{
-            Log.d("PND", "Leaderboard not available");
+            Log.d(TAG, "Leaderboard not available");
         }
     }
 
